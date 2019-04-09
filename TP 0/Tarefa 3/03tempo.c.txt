@@ -14,7 +14,7 @@
 #define FAULT 2
 #define REPAIR 3
 
-#define simulationTime 55.0
+#define simulationTime 135.0
 
 /* descritor do nodo */
 typedef struct{
