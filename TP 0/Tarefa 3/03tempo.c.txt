@@ -48,15 +48,13 @@ void testNextUntilNoFail(tnodo *nodos, int n, int tokenID){
 		}
 	}
 	if(nextStatus == 0 && next == tokenID){//próximo nó sem falha é ele mesmo
-		printf("\033[1;31;32mtime: %4.1f\tNodo %02d is the only one fault-free in the system.\033[0m\n", time(), tokenID);
+		printf("\033[1;31;32mtime: %4.1f\tNode %02d is the only one fault-free in the system.\033[0m\n", time(), tokenID);
 
 	}
 	else if(nextStatus == 0){ //próximo nó sem falha
 		//atualiza state
 		nodo[tokenID].state[next] = 0;
-		printf("time: %4.1f\tNodo %02d performs test in Node %02d\tNode %02d status vector: ",time(), tokenID, next, tokenID);
-		//printf("time: %4.1f\tNode %02d performs test in Node %02d\t\033[0;34;107mNode %02d is fault-free\033[0m.\n",time(), tokenID, next, next);
-		//printf("time: %4.1f\tNodo %02d testa Nodo %02d \tStatus de Nodo %02d: ",time(), tokenID, next,tokenID);
+		printf("time: %4.1f\tNode %02d performs test in Node %02d\tNode %02d status vector: ",time(), tokenID, next, tokenID);
 		printStatus(nodo, n, tokenID);
 	}
 }
