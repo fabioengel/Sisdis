@@ -1,0 +1,117 @@
+/*
+ * Autor: Fábio Engel de Camargo
+ * Disciplina: Sistemas Distribuídos INFO7046
+ * Tarefa 1: Cada nodo sem-falha testa o seguinte no anel.
+ * Data da última alteração: 08/04/2019
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+#include "smpl.h"
+
+// Eventos
+#define TEST 1
+#define FAULT 2
+#define REPAIR 3
+#define simulationTime 55.0
+
+/* descritor do nodo */
+typedef struct{
+	int id;
+}tnodo;
+
+tnodo *nodo;
+
+//Método realiza o teste dos nodos considerando uma estrutura em anel
+void testNext(tnodo *nodos, int n, int tokenID){
+	int next = (tokenID	+ 1) % n; //armazena id do nodo a ser testado
+	int nextStatus = status(nodos[next].id); // realiza o teste
+
+	if(nextStatus == 0){ //próximo nó faulty-free
+		printf("time: %4.1f\tNode %02d performs test in Node %02d\t\033[0;34;107mNode %02d is fault-free\033[0m.\n",time(), tokenID, next, next);
+	}
+	if(nextStatus == 1){//próximo nó faulty
+		printf("time: %4.1f\tNode %02d performs test in Node %02d\t\033[0;31;107mNode %02d is faulty\033[0m.\n", time(), tokenID, next, next);
+	}
+
+}
+
+/* é nesta estrutura que mantemos informações locais dos nodos */
+
+int main(int argc, char * argv[]){
+	static int N, //Número de nodos
+				token, event,r,i,tr,t;
+	tr = 1; // indica a rodada de testes;
+	t = -1; // utilizada para verificar se houve mudança no tempo de execução e imprimir mensagem de nova rodada de testes
+
+	static char fa_name[5];
+
+	if(argc != 2){
+		puts("Wrong input, use: ./tempo <number_of_nodes>");
+		exit(1);
+	}
+
+	N = atoi(argv[1]);
+	smpl(0, "Tempo");
+	reset();
+	stream(1);
+
+	printf("----- Simulation with %d Nodes -----\n", N);
+	// Inicializacao
+	nodo = (tnodo *) malloc(sizeof(tnodo) * N);
+
+	for(i = 0; i < N; ++i) {
+		memset(fa_name, '\0', 5);
+		sprintf(fa_name, "%d", i);
+		nodo[i].id = facility(fa_name, 1);
+	}
+
+
+	// Schedule de eventos
+	for (i = 0; i < N; ++i) {
+		schedule(TEST, 10.0, i);
+	}
+
+	schedule(FAULT, 15.0, 1);
+	schedule(FAULT, 27.0, 4);
+	schedule(REPAIR, 36.0, 1);
+
+	while(time() < simulationTime) {
+		cause(&event, &token);
+		switch(event){
+			case TEST:
+				if(time() > simulationTime){break;}
+				if(t < time()){
+					printf("\t\t----- Start test round %d -----\n", tr);
+					t = time();
+					tr++;
+				}
+				if(status(nodo[token].id) != 0){
+					printf("time: %4.1f\tNode %02d is faulty.\n",time(), token);
+					schedule(TEST, 10.0, token);
+					break;
+				}
+
+				testNext(nodo, N, token);
+				schedule(TEST, 10.0, token);
+				break;
+
+			case FAULT:
+				r = request(nodo[token].id, token, 0);
+				if(r != 0){
+					puts("Não foi possível falhar o nodo");
+					exit(1);
+				}
+				printf("\033[1;31;107mtime: %4.1f\tNode %02d failed.\033[0m\n",time(), token );
+				break;
+
+			case REPAIR:
+				release(nodo[token].id, token);
+				//schedule(TEST, 10.0, token);
+				printf("\033[1;34;107mtime: %4.1f\tNode %02d recovered.\033[0m\n",time(), token );
+				break;
+		}
+
+	}
+
+}
