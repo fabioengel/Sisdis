@@ -106,7 +106,7 @@ bool checkEventDiagnosed(tnodo *nodos, int n, int eventNode, int timestamp){
 //imprime as informações iniciais de log
 void printLogIntro(int n,scheduleEvent *eventos, int numEventos){
 	printf("==========================================================================================================================================\n");
-	printf("\033[1;30;107m\t\t\t\t\tVCbube algorith Log\033[0m\n");
+	printf("\033[1;30;107m\t\t\t\t\tVCube algorithm log\033[0m\n");
 	printf("\033[1;30;107m\t\tNode number:\033[0m %d\n",n);
 	printf("\033[1;30;107m\t\tTest interval:\033[0m %4.1f seconds\n", interval);
 	printf("\033[1;30;107m\t\tExecution time:\033[0m %4.1f seconds\n", simulationTime);
