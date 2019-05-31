@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- This file was created with the aha Ansi HTML Adapter. https://github.com/theZiz/aha -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="application/xml+xhtml; charset=UTF-8" />
+<title>stdin</title>
+</head>
+<body>
+<pre>
+==========================================================================================================================================
+<span style="color:dimgray;font-weight:bold;">					Best-effort broadcast over VCbube algorith - Log</span>
+<span style="color:dimgray;font-weight:bold;">		Node number:</span> 8
+<span style="color:dimgray;font-weight:bold;">		Test interval:</span> 10.0 seconds
+<span style="color:dimgray;font-weight:bold;">		Execution time:</span> 142.0 seconds
+<span style="color:dimgray;font-weight:bold;">		Author:</span> Fábio Engel de Camargo
+<span style="color:dimgray;font-weight:bold;">		Scheduled Events: </span>
+				<span style="color:red;">Node 00 fails at time 45.0</span>
+				<span style="color:red;">Node 01 fails at time 65.0</span>
+				<span style="color:red;">Node 02 fails at time 79.0</span>
+				<span style="color:red;">Node 03 fails at time 95.0</span>
+<span style="color:dimgray;font-weight:bold;">		Scheduled Broadcast: </span>
+				<span style="color:green;">Node 05 broadcast at time 35.0</span>
+				<span style="color:green;">Node 05 broadcast at time 125.0</span>
+==========================================================================================================================================
+
+<span style="color:dimgray;font-weight:bold;">Time 		Event</span>
+
+time:30.0	Test round report:
+			All Nodes were initialized and diagnosed.
+
+
+<span style="color:green;font-weight:bold;">time:35.0	Node 05 broadcast: msg_05_01</span>
+			Node 05 send msg_05_01 to Node 04
+			Node 05 send msg_05_01 to Node 07
+			Node 05 send msg_05_01 to Node 01
+			Node 01 send msg_05_01 to Node 03
+			Node 03 send msg_05_01 to Node 02
+			Node 07 send msg_05_01 to Node 06
+			Node 01 send msg_05_01 to Node 00
+
+<span style="color:red;font-weight:bold;">time:45.0	Node 00 failed.</span>
+
+time:50.0	Test round report:
+			Diagnosis over event_id 01 complete: Node 00 faulty
+			Latency: 01 round(s)
+			Total tests: 19
+
+<span style="color:red;font-weight:bold;">time:65.0	Node 01 failed.</span>
+<span style="color:red;font-weight:bold;">time:79.0	Node 02 failed.</span>
+
+time:80.0	Test round report:
+			Diagnosis over event_id 02 complete: Node 01 faulty
+			Latency: 02 round(s)
+			Total tests: 27
+
+
+time:90.0	Test round report:
+			Diagnosis over event_id 03 complete: Node 02 faulty
+			Latency: 02 round(s)
+			Total tests: 27
+
+<span style="color:red;font-weight:bold;">time:95.0	Node 03 failed.</span>
+
+time:120.0	Test round report:
+			Diagnosis over event_id 04 complete: Node 03 faulty
+			Latency: 03 round(s)
+			Total tests: 17
+
+
+<span style="color:green;font-weight:bold;">time:125.0	Node 05 broadcast: msg_05_02</span>
+			Node 05 send msg_05_02 to Node 04
+			Node 05 send msg_05_02 to Node 07
+			Node 07 send msg_05_02 to Node 06
+
+</pre>
+</body>
+</html>

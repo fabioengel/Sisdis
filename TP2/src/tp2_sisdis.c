@@ -14,7 +14,7 @@
 #include "eventList.h"
 #include <string.h>
 
-#define simulationTime 112.0 // tempo de duração da simulação
+#define simulationTime 142.0 // tempo de duração da simulação
 #define interval 10.0 //intervalo de testes
 
 
@@ -31,7 +31,6 @@ typedef struct{
 	char msgRecev[16];
 	char msgSend[16];
 	int s; // valor de s recebido;
-	bool forward; //se true, deve encaminhar msg
 
 }tnodo;
 
@@ -49,6 +48,7 @@ typedef struct{
 typedef struct{
 	int nodeId; //nodo emissor do broadcast
 	real time; //momento do envio
+	bool alreadytransmitted;
 }scheduleBroadcast;
 
 int testnumber =1; //armazena número do teste realizado
@@ -64,9 +64,9 @@ void printLogIntro(int n,scheduleEvent *eventos, int numEventos, int numBroadc, 
 void checkEventDiagnosed(tnodo *nodos, int n, evento* head, int testnum);
 bool checkNodeStartDiagnosed(tnodo *nodos, int n);
 bool firstTimeEventDetected(evento *head, int nodo, int newtimestamp);
-void printReport(tnodo *nodos, int n, evento* head, int tround);
+void printReport(tnodo *nodos, int n, evento* head, int tround, real time);
 
-void broadcastschedule(tnodo *nodos, int n, evento* head, scheduleBroadcast* sbroadc,int qtdBroadcast,real time);
+void broadcastschedule(tnodo *nodos, int n, evento* head, int qtdEv, scheduleEvent * sEvent, scheduleBroadcast* sbroadc,int qtdBroadcast,real time);
 void sendMessage(tnodo *nodos, int n, int emissor, real tempo);
 void createMsg(int idEmissor,int idMessage, char* msg);
 void forwardMsg(tnodo *nodos, int n, char* msg, int num_clusters, int e);
@@ -84,6 +84,7 @@ void createMsg(int idEmissor,int idMessage, char* msg){
 	strcat(msg,id);
 }
 
+//verifica se nodos possuem mensagens a serem encaminhadas
 bool sendcheck(tnodo *nodos, int n){
 	int i;
 
@@ -93,11 +94,13 @@ bool sendcheck(tnodo *nodos, int n){
 		}
 	}
 
-	return false; // caso contrário retorna false;
+	return(false); // caso contrário retorna false;
 
 }
 
+//encaminha mensagem recebida
 void forwardMsg(tnodo *nodos, int n, char* msg, int num_clusters, int e){
+
 	int s;
 	int dest;
 	int i, tab;
@@ -111,7 +114,7 @@ void forwardMsg(tnodo *nodos, int n, char* msg, int num_clusters, int e){
 		}
 	}
 
-	while(sendcheck(nodos,s)){
+	while(sendcheck(nodos,n)){
 		for(i=0; i < n; i++){
 			if(nodos[i].s > 0){
 				if(nodos[i].s == 1){// nodo é folha, não retransmite.
@@ -122,7 +125,6 @@ void forwardMsg(tnodo *nodos, int n, char* msg, int num_clusters, int e){
 					nodos[i].s -= 1;
 					dest = firstnodefaultyfree(nodos, i, nodos[i].s);
 					if(dest != -1){
-
 						printf("\t\t\tNode %02d send %s to Node %02d\n",i,nodos[i].msgRecev,dest);
 						strcpy(nodos[dest].msgRecev, msg); // nodo recebe msg;
 						nodos[dest].s = nodos[i].s; // nodo recebe valor de s;
@@ -134,6 +136,7 @@ void forwardMsg(tnodo *nodos, int n, char* msg, int num_clusters, int e){
 
 }
 
+//método executado pelo nodo emissor da mensagem em broadcast
 void sendMessage(tnodo *nodos, int n, int emissor, real tempo){
 	int i;
 	int num_clusters = log2(n);
@@ -146,10 +149,15 @@ void sendMessage(tnodo *nodos, int n, int emissor, real tempo){
 	strcpy(nodos[emissor].msgSend, msg);
 
 	printf("\n\033[1;32;107mtime:%4.1f\tNode %02d broadcast: %s\033[0m\n", tempo,emissor, msg);
+
+	for(i=0; i < n; i++){
+		nodo[i].s = 0;
+	}
 	forwardMsg(nodos, n, msg, num_clusters, emissor);
+	printf("\n");
 }
 
-
+//retorna o primeiro nodo livre de erros para o envio de msg
 int firstnodefaultyfree(tnodo *nodos, int e, int s){
 	node_set* nodesToCheck;
 	nodesToCheck = cis(e,s);
@@ -159,35 +167,53 @@ int firstnodefaultyfree(tnodo *nodos, int e, int s){
 		nodo = nodesToCheck->nodes[k];
 		if(nodos[e].timestamp[nodo] % 2 == 0){//se livre de erro;
 			return nodo;
+
 		}
 	}
 	return -1;
 }
+//verifica a cada final de rodada de testes se algum evento de broadcast deve ser realizado
+void broadcastschedule(tnodo *nodos, int n, evento* head, int qtdEv,scheduleEvent * sEvent, scheduleBroadcast* sbroadc,int qtdBroadcast,real time){
 
-void broadcastschedule(tnodo *nodos, int n, evento* head, scheduleBroadcast* sbroadc, int qtdBroadcast, real time){
 	//verifica se há agendamento de broadcast
 	int i,j,node, estado;
 	real tempoNodo;
+	bool eventInthisInterval = false;
 	for(i=0; i< qtdBroadcast; i++){
-
 		tempoNodo = sbroadc[i].time;
 
-		if(tempoNodo >= time && tempoNodo < time + interval){// haverá transmissão de broadcast neste intervalo
-			node = sbroadc[i].nodeId;
-			estado = status(nodos[node].id);
-			if(head->next == (void *) NULL){
-				if(estado == 0){
-					sendMessage(nodos, n, node, tempoNodo);
+		// verifica-se se há evento no mesmo intervalo
+		for(j=0;j<qtdEv; j++){
+			if((sEvent[j].time >= time) &&  sEvent[j].time < (time + interval)){ // Existe evento no intervalo em que esta função é chamada
+				if(tempoNodo > sEvent[j].time){// se broadcast ocorre após evento, função deve retornar;
+					if(time < sEvent[j].time){
+						eventInthisInterval = true;
+					}
 				}
-				else{
-					printf("\n\033[1;97;41mWarning:\033[0m \tScheduled node %02d for broadcast is faulty.\n\n", sbroadc[i].nodeId);
-				}
-
-			}
-			else{
-				printf("\n\033[1;97;41mWarning:\033[0m \tThere are events not yet diagnosed. Node %02d Broadcast not allowed.\n\n", node);
 			}
 		}
+
+		if(!sbroadc[i].alreadytransmitted){ // se broadcast ainda não foi enviado
+			if((tempoNodo >= time) && (tempoNodo < (time + interval)) && !eventInthisInterval){// haverá transmissão de broadcast neste intervalo
+				node = sbroadc[i].nodeId;
+				estado = status(nodos[node].id);
+				if(head->next == (void *) NULL){
+					if(estado == 0){
+						sendMessage(nodos, n, node, tempoNodo);
+					}
+					else{
+						printf("\n\033[1;97;41mWarning:\033[0m \tScheduled node %02d for broadcast is faulty.\n\n", sbroadc[i].nodeId);
+					}
+
+				}
+				else{
+					printf("\n\033[1;97;41mWarning:\033[0m \tThere are events not yet diagnosed. Node %02d Broadcast not allowed.\n\n", node);
+				}
+
+				sbroadc[i].alreadytransmitted = true;
+			}
+		}
+
 	}
 
 
@@ -210,7 +236,7 @@ bool checkNodeStartDiagnosed(tnodo *nodos, int n){
 }
 
 
-void printReport(tnodo *nodos, int n, evento* head, int tround){
+void printReport(tnodo *nodos, int n, evento* head, int tround, real time){
 	evento* lastEvent = head;
 	int it;
 	int eventNode;
@@ -226,8 +252,8 @@ void printReport(tnodo *nodos, int n, evento* head, int tround){
 		}
 	}
 	if(allfaulty){ // indica que todos nodos estão falhos
-		printf("\nTest round report:\n");
-		printf("\t\tAll nodes are faulty\n");
+		printf("\ntime:%4.1f\tTest round report:\n",time);
+		printf("\t\t\tAll nodes are faulty\n");
 		return;
 	}
 
@@ -241,20 +267,21 @@ void printReport(tnodo *nodos, int n, evento* head, int tround){
 			if(lastEvent->itwasdiagnosed){
 				if(lastEvent->novoEstado % 2 == 0){// evento de recover
 					if(!reportprinted){
-						printf("\nTest round report:\n");
+						printf("\ntime:%4.1f\tTest round report:\n",time);
 						reportprinted = true;
 					}
-					printf("\t\tDiagnosis over event_id %02d complete: Node %02d recovered.\n",lastEvent->id, lastEvent->nodoIdentificado);
+					printf("\t\t\tDiagnosis over event_id %02d complete: Node %02d recovered\n",lastEvent->id, lastEvent->nodoIdentificado);
 				}
 				else{
 					if(!reportprinted){
-						printf("\nTest round report:\n");
+						printf("\ntime:%4.1f\tTest round report:\n",time);
 						reportprinted = true;
 					}
-					printf("\t\tDiagnosis over event_id %02d complete: Node %02d faulty.\n",lastEvent->id, lastEvent->nodoIdentificado);
+					printf("\t\t\tDiagnosis over event_id %02d complete: Node %02d faulty\n",lastEvent->id, lastEvent->nodoIdentificado);
 				}
-				printf("\t\tLatency: %02d round(s).\n", tround+1 - lastEvent->TestRound);
-				printf("\t\tTotal tests: %02d.\n", lastEvent->testNumberDiagnosed - lastEvent->testNumberIdentificado);
+				printf("\t\t\tLatency: %02d round(s)\n", tround+1 - lastEvent->TestRound);
+				printf("\t\t\tTotal tests: %02d\n", lastEvent->testNumberDiagnosed - lastEvent->testNumberIdentificado);
+				//printf("\t\tCurrent time: %4.1f\n",time);
 				printf("\n");
 				removeEvento(head, lastEvent->id);
 			}
@@ -585,7 +612,6 @@ int main(int argc, char * argv[]){
 			}
 			nodo[it].msgId = 0; //inicia contador de mensagens de cada nodo
 			nodo[it].s = 0;
-			nodo[it].forward = false;
 		}
 	}
 
@@ -598,28 +624,28 @@ int main(int argc, char * argv[]){
 
 	/*----------------------------------------------------------------------------------------------------------------------*/
 	// Atenção: Aqui devem ser inseridos os eventos que devem ocorrer. Atenção ao inserir número de eventos e indices.
-	int numeroDeEventos = 0;
+	int numeroDeEventos = 4;
 
 	scheduleEvent * sEvent;
 	sEvent = (scheduleEvent*) malloc(sizeof(scheduleEvent) * numeroDeEventos);
 
-//	sEvent[0].type = 'f'; sEvent[0].time = 45.0; sEvent[0].node = 0;
-//	sEvent[1].type = 'f'; sEvent[1].time = 56.0; sEvent[1].node = 6;
-//	sEvent[2].type = 'f'; sEvent[2].time = 79.0; sEvent[2].node = 2;
-//	sEvent[3].type = 'f'; sEvent[3].time = 35.0; sEvent[3].node = 3;
+	sEvent[0].type = 'f'; sEvent[0].time = 45.0; sEvent[0].node = 0;
+	sEvent[1].type = 'f'; sEvent[1].time = 65.0; sEvent[1].node = 1;
+	sEvent[2].type = 'f'; sEvent[2].time = 79.0; sEvent[2].node = 2;
+	sEvent[3].type = 'f'; sEvent[3].time = 95.0; sEvent[3].node = 3;
 //	sEvent[4].type = 'r'; sEvent[4].time = 85.0; sEvent[4].node = 0;
 	//sEvent[].type = ''; sEvent[].time = .0; sEvent[].node = ;
 	/*----------------------------------------------------------------------------------------------------------------------*/
 
 	//Eventods de broadcast devem ser definidos em ordem temporal
-	int numeroBroadcast = 1;
+	int numeroBroadcast = 2;
 	scheduleBroadcast * sBroadcast;
 	sBroadcast = (scheduleBroadcast*) malloc(sizeof(scheduleBroadcast) * numeroBroadcast);
 
-	sBroadcast[0].time = 45.0; sBroadcast[0].nodeId = 0;
-//	sBroadcast[1].time = 87.0; sBroadcast[1].nodeId = 1;
-//	sBroadcast[2].time = 97.0; sBroadcast[2].nodeId = 5;
-	//sBroadcast[1].time = 85.0; sBroadcast[1].nodeId = 0;
+	 sBroadcast[0].alreadytransmitted = false; sBroadcast[0].time = 35.0; sBroadcast[0].nodeId = 5;
+	 sBroadcast[0].alreadytransmitted = false; sBroadcast[1].time = 125.0; sBroadcast[1].nodeId = 5;
+//	 sBroadcast[0].alreadytransmitted = false; sBroadcast[2].time = 97.0; sBroadcast[2].nodeId = 5;
+//   sBroadcast[0].alreadytransmitted = false; sBroadcast[1].time = 85.0; sBroadcast[1].nodeId = 0;
 
 
 	for(it=0; it<numeroDeEventos; it++){
@@ -668,17 +694,17 @@ int main(int argc, char * argv[]){
 				if(nodesStarted == false){
 					nodesStarted = checkNodeStartDiagnosed(nodo,N);
 					if(nodesStarted == true){
-						printf("\nTest round report:\n");
-								printf("\t\tAll Nodes were initialized and diagnosed.\n\n");
+						printf("\ntime:%4.1f\tTest round report:\n", time());
+								printf("\t\t\tAll Nodes were initialized and diagnosed.\n\n");
 					}
 
 				}
 				else{
-					printReport(nodo,N, headList,tr);
+					printReport(nodo,N, headList,tr,time());
 				}
 
 				//Envio de broadcast ocorrem após as rodadas de teste, apenas quando não existem eventos ainda não diagnosticados.
-				broadcastschedule(nodo, N, headList,sBroadcast, numeroBroadcast, time());
+				broadcastschedule(nodo, N, headList,numeroDeEventos,sEvent, sBroadcast, numeroBroadcast, time());
 
 			}
 
@@ -692,6 +718,7 @@ int main(int argc, char * argv[]){
 			}
 			printf("\033[1;31;107mtime:%4.1f\tNode %02d failed.\033[0m\n",time(), token );
 			eventTestnumber = testnumber -1;
+			broadcastschedule(nodo, N, headList,numeroDeEventos,sEvent, sBroadcast, numeroBroadcast, time());
 			break;
 
 		case REPAIR:
@@ -712,6 +739,7 @@ int main(int argc, char * argv[]){
 			//printStatus(nodo, N, token);
 			printf("\n");
 			eventTestnumber = testnumber -1;
+
 			break;
 		}
 

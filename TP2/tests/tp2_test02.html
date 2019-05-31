@@ -14,24 +14,32 @@
 <span style="color:dimgray;font-weight:bold;">		Test interval:</span> 10.0 seconds
 <span style="color:dimgray;font-weight:bold;">		Execution time:</span> 142.0 seconds
 <span style="color:dimgray;font-weight:bold;">		Author:</span> Fábio Engel de Camargo
-<span style="color:dimgray;font-weight:bold;">		Scheduled Events: </span>No scheduled events
+<span style="color:dimgray;font-weight:bold;">		Scheduled Events: </span>
+				<span style="color:red;">Node 04 fails at time 35.0</span>
 <span style="color:dimgray;font-weight:bold;">		Scheduled Broadcast: </span>
-				<span style="color:green;">Node 00 broadcast at time 45.0</span>
+				<span style="color:green;">Node 00 broadcast at time 55.0</span>
 ==========================================================================================================================================
 
+<span style="color:dimgray;font-weight:bold;">Time 		Event</span>
 
 time:30.0	Test round report:
 			All Nodes were initialized and diagnosed.
 
+<span style="color:red;font-weight:bold;">time:35.0	Node 04 failed.</span>
 
-<span style="color:green;font-weight:bold;">time:45.0	Node 00 broadcast: msg_00_01</span>
+time:40.0	Test round report:
+			Diagnosis over event_id 01 complete: Node 04 faulty
+			Latency: 01 round(s)
+			Total tests: 17
+
+
+<span style="color:green;font-weight:bold;">time:55.0	Node 00 broadcast: msg_00_01</span>
 			Node 00 send msg_00_01 to Node 01
 			Node 00 send msg_00_01 to Node 02
-			Node 00 send msg_00_01 to Node 04
+			Node 00 send msg_00_01 to Node 05
 			Node 02 send msg_00_01 to Node 03
-			Node 04 send msg_00_01 to Node 06
-			Node 06 send msg_00_01 to Node 07
-			Node 04 send msg_00_01 to Node 05
+			Node 05 send msg_00_01 to Node 07
+			Node 07 send msg_00_01 to Node 06
 
 </pre>
 </body>
